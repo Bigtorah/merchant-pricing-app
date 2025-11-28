@@ -32,12 +32,7 @@ revshare = 0.50  # 50% to agent
 st.write("---")
 
 # ---- Setup Options (Decision Tree) ----
-st.header("Merchant Setup")
-
-# Number of merchants (same configuration)
-num_merchants = st.number_input(
-    "Number of merchants using this setup", min_value=1, value=1, step=1
-)
+st.header("Merchant Setup (Single Merchant)")
 
 # Terminal choice (for one-time hardware cost only)
 terminal = st.selectbox(
@@ -104,10 +99,6 @@ dual_one_time_fees_per_merchant = base_one_time_fees_per_merchant + (
 )
 flat_one_time_fees_per_merchant = base_one_time_fees_per_merchant  # no compliance fee on flat rate
 
-# Scale one-time fees by number of merchants
-dual_one_time_fees_total = dual_one_time_fees_per_merchant * num_merchants
-flat_one_time_fees_total = flat_one_time_fees_per_merchant * num_merchants
-
 # ---- Compute Monthly Fees (per merchant) ----
 # - monthly_fees_total_per_merchant: what you show as the monthly cost
 # - monthly_fees_agent_per_merchant: what actually reduces the agent's profit when "absorbing"
@@ -136,10 +127,6 @@ if use_mobile:
     monthly_fees_total_per_merchant += mobile_monthly_fee
     monthly_fees_agent_per_merchant += mobile_monthly_fee
 
-# Scale monthly fees by number of merchants
-monthly_fees_total_all_merchants = monthly_fees_total_per_merchant * num_merchants
-monthly_fees_agent_all_merchants = monthly_fees_agent_per_merchant * num_merchants
-
 # ---- Profit Calculations (per merchant) ----
 dual_gross_profit_per_merchant = volume * dual_profit_pct
 flat_gross_profit_per_merchant = volume * flat_profit_pct
@@ -148,48 +135,90 @@ dual_agent_share_per_merchant = dual_gross_profit_per_merchant * revshare
 flat_agent_share_per_merchant = flat_gross_profit_per_merchant * revshare
 
 # Net MONTHLY profit to agent per merchant when absorbing all monthly fees
-dual_net_monthly_absorb_per_merchant = dual_agent_share_per_merchant - monthly_fees_agent_per_merchant
-flat_net_monthly_absorb_per_merchant = flat_agent_share_per_merchant - monthly_fees_agent_per_merchant
+dual_net_monthly_absorb_per_merchant = (
+    dual_agent_share_per_merchant - monthly_fees_agent_per_merchant
+)
+flat_net_monthly_absorb_per_merchant = (
+    flat_agent_share_per_merchant - monthly_fees_agent_per_merchant
+)
 
-# ---- Scale to all merchants ----
+# Yearly (single merchant)
+dual_yearly_passing_single = dual_agent_share_per_merchant * 12
+dual_yearly_absorb_single = dual_net_monthly_absorb_per_merchant * 12
+
+flat_yearly_passing_single = flat_agent_share_per_merchant * 12
+flat_yearly_absorb_single = flat_net_monthly_absorb_per_merchant * 12
+
+# ---- Results: Single Merchant ----
+st.header("Results (Single Merchant)")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Dual Pricing (3.99%)")
+    st.write(f"**Gross profit (processor, monthly):** ${dual_gross_profit_per_merchant:,.2f}")
+    st.write(f"**Agent share (50%, monthly):** ${dual_agent_share_per_merchant:,.2f}")
+    st.write(f"**Monthly fees (total, single merchant):** ${monthly_fees_total_per_merchant:,.2f}")
+    st.write(f"**Net to agent (passing monthly fees, monthly):** ${dual_agent_share_per_merchant:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees, monthly):** ${dual_net_monthly_absorb_per_merchant:,.2f}")
+    st.write(f"**Yearly net to agent (passing monthly fees):** ${dual_yearly_passing_single:,.2f}")
+    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${dual_yearly_absorb_single:,.2f}")
+    st.write(f"**One-time setup fees (single merchant):** ${dual_one_time_fees_per_merchant:,.2f}")
+
+with col2:
+    st.subheader("Flat Rate (2.95% + $0.30)")
+    st.write(f"**Gross profit (processor, monthly):** ${flat_gross_profit_per_merchant:,.2f}")
+    st.write(f"**Agent share (50%, monthly):** ${flat_agent_share_per_merchant:,.2f}")
+    st.write(f"**Monthly fees (total, single merchant):** ${monthly_fees_total_per_merchant:,.2f}")
+    st.write(f"**Net to agent (passing monthly fees, monthly):** ${flat_agent_share_per_merchant:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees, monthly):** ${flat_net_monthly_absorb_per_merchant:,.2f}")
+    st.write(f"**Yearly net to agent (passing monthly fees):** ${flat_yearly_passing_single:,.2f}")
+    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${flat_yearly_absorb_single:,.2f}")
+    st.write(f"**One-time setup fees (single merchant):** ${flat_one_time_fees_per_merchant:,.2f}")
+
+# ---- Additional Merchant Profitability Report ----
+st.write("")
+st.write("")  # extra spacing
+
+st.header("Additional Merchant Profitability Report")
+
+num_merchants = st.number_input(
+    "Number of merchants using this same setup", min_value=1, value=1, step=1
+)
+
+# Scale monthly and yearly numbers by number of merchants
 dual_agent_share_all_merchants = dual_agent_share_per_merchant * num_merchants
 flat_agent_share_all_merchants = flat_agent_share_per_merchant * num_merchants
 
 dual_net_monthly_absorb_all_merchants = dual_net_monthly_absorb_per_merchant * num_merchants
 flat_net_monthly_absorb_all_merchants = flat_net_monthly_absorb_per_merchant * num_merchants
 
-# ---- Yearly numbers ----
-dual_yearly_passing = dual_agent_share_all_merchants * 12
-dual_yearly_absorb = dual_net_monthly_absorb_all_merchants * 12
+dual_yearly_passing_all = dual_agent_share_all_merchants * 12
+dual_yearly_absorb_all = dual_net_monthly_absorb_all_merchants * 12
 
-flat_yearly_passing = flat_agent_share_all_merchants * 12
-flat_yearly_absorb = flat_net_monthly_absorb_all_merchants * 12
+flat_yearly_passing_all = flat_agent_share_all_merchants * 12
+flat_yearly_absorb_all = flat_net_monthly_absorb_all_merchants * 12
 
-st.header("Results")
+dual_one_time_fees_total = dual_one_time_fees_per_merchant * num_merchants
+flat_one_time_fees_total = flat_one_time_fees_per_merchant * num_merchants
 
-col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
-with col1:
-    st.subheader("Dual Pricing (3.99%)")
-    st.write(f"**Gross profit per merchant (processor):** ${dual_gross_profit_per_merchant:,.2f}")
-    st.write(f"**Agent share per merchant (50%):** ${dual_agent_share_per_merchant:,.2f}")
-    st.write(f"**Monthly fees (total, all merchants):** ${monthly_fees_total_all_merchants:,.2f}")
-    st.write(f"**Net to agent (passing monthly fees to merchant, monthly):** ${dual_agent_share_all_merchants:,.2f}")
+with col3:
+    st.subheader("Dual Pricing – All Merchants")
+    st.write(f"**Net to agent (passing monthly fees, monthly):** ${dual_agent_share_all_merchants:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees, monthly):** ${dual_net_monthly_absorb_all_merchants:,.2f}")
-    st.write(f"**Yearly net to agent (passing monthly fees):** ${dual_yearly_passing:,.2f}")
-    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${dual_yearly_absorb:,.2f}")
-    st.write(f"**One-time setup fees (all merchants):** ${dual_one_time_fees_total:,.2f}")
+    st.write(f"**Yearly net to agent (passing monthly fees):** ${dual_yearly_passing_all:,.2f}")
+    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${dual_yearly_absorb_all:,.2f}")
+    st.write(f"**Total one-time setup fees (all merchants):** ${dual_one_time_fees_total:,.2f}")
 
-with col2:
-    st.subheader("Flat Rate (2.95% + $0.30)")
-    st.write(f"**Gross profit per merchant (processor):** ${flat_gross_profit_per_merchant:,.2f}")
-    st.write(f"**Agent share per merchant (50%):** ${flat_agent_share_per_merchant:,.2f}")
-    st.write(f"**Monthly fees (total, all merchants):** ${monthly_fees_total_all_merchants:,.2f}")
-    st.write(f"**Net to agent (passing monthly fees to merchant, monthly):** ${flat_agent_share_all_merchants:,.2f}")
+with col4:
+    st.subheader("Flat Rate – All Merchants")
+    st.write(f"**Net to agent (passing monthly fees, monthly):** ${flat_agent_share_all_merchants:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees, monthly):** ${flat_net_monthly_absorb_all_merchants:,.2f}")
-    st.write(f"**Yearly net to agent (passing monthly fees):** ${flat_yearly_passing:,.2f}")
-    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${flat_yearly_absorb:,.2f}")
-    st.write(f"**One-time setup fees (all merchants):** ${flat_one_time_fees_total:,.2f}")
+    st.write(f"**Yearly net to agent (passing monthly fees):** ${flat_yearly_passing_all:,.2f}")
+    st.write(f"**Yearly net to agent (absorbing monthly fees):** ${flat_yearly_absorb_all:,.2f}")
+    st.write(f"**Total one-time setup fees (all merchants):** ${flat_one_time_fees_total:,.2f}")
 
 st.write("---")
 st.markdown(
