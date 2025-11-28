@@ -9,6 +9,7 @@ st.markdown("Compare **Dual Pricing** vs **Flat Rate**")
 # Monthly volume as text so commas are allowed, e.g. "15,000"
 volume_input = st.text_input("Monthly Processing Volume ($)", value="15,000")
 
+
 def parse_dollar_input(text: str) -> float:
     text = text.replace(",", "").replace("$", "").strip()
     if text == "":
@@ -18,13 +19,14 @@ def parse_dollar_input(text: str) -> float:
     except ValueError:
         return 0.0
 
+
 volume = parse_dollar_input(volume_input)
 
 # Fixed profit assumptions (not shown, just used)
 dual_profit_pct = 0.015   # 1.5% profit for Dual Pricing
 flat_profit_pct = 0.01    # 1.0% profit for Flat Rate
 
-# Fixed revshare
+# Fixed revshare to agent
 revshare = 0.50  # 50% to agent
 
 st.write("---")
@@ -44,7 +46,8 @@ if terminal == "Dejavoo P8":
     needs_stand = st.checkbox("Add stand for P8? ($35 one-time)", value=False)
 
 # Number of terminals (affects monthly per-terminal fees)
-num_terminals = st.number_input("Number of terminals", min_value=0, value=0, step=1)
+# Assume at least 1 terminal on a live account
+num_terminals = st.number_input("Number of terminals", min_value=1, value=1, step=1)
 
 # Mobile payments?
 use_mobile = st.checkbox("Will they use mobile payments (iPhone/Android)?", value=False)
@@ -52,7 +55,7 @@ num_mobile_devices = 0
 if use_mobile:
     num_mobile_devices = st.number_input("Number of mobile devices", min_value=1, value=1, step=1)
 
-# Pricing model flag (used only to add the DP compliance one-time fee)
+# Pricing model flag (used to decide if this is a Dual Pricing merchant)
 use_dual_pricing = st.checkbox("This merchant is using Dual Pricing", value=True)
 
 st.write("---")
@@ -74,24 +77,25 @@ STAND_P8 = 35.00
 MOBILE_APP_DOWNLOAD = 30.00      # per mobile device
 DUAL_COMPLIANCE = 3.00           # Dual Pricing only, per merchant
 
-# ---- Compute One-Time Fees (setup only, does NOT affect profit) ----
-one_time_fees = 0.0
+# ---- Compute Base One-Time Fees (setup only, does NOT affect profit) ----
+base_one_time_fees = 0.0
 
 if terminal == "Dejavoo P8":
-    one_time_fees += P8_TERMINAL
+    base_one_time_fees += P8_TERMINAL
 elif terminal == "Dejavoo P18":
-    one_time_fees += P18_TERMINAL
+    base_one_time_fees += P18_TERMINAL
 elif terminal == "Dejavoo P12 Mini":
-    one_time_fees += P12_TERMINAL
+    base_one_time_fees += P12_TERMINAL
 
 if needs_stand and terminal == "Dejavoo P8":
-    one_time_fees += STAND_P8
+    base_one_time_fees += STAND_P8
 
 if use_mobile:
-    one_time_fees += num_mobile_devices * MOBILE_APP_DOWNLOAD
+    base_one_time_fees += num_mobile_devices * MOBILE_APP_DOWNLOAD
 
-if use_dual_pricing:
-    one_time_fees += DUAL_COMPLIANCE
+# Dual vs Flat one-time:
+dual_one_time_fees = base_one_time_fees + (DUAL_COMPLIANCE if use_dual_pricing else 0.0)
+flat_one_time_fees = base_one_time_fees  # no compliance fee on flat rate
 
 # ---- Compute Monthly Fees ----
 # We separate:
@@ -100,15 +104,16 @@ if use_dual_pricing:
 monthly_fees_total = 0.0
 monthly_fees_agent = 0.0
 
-# Base monthly fees (assumed for an active merchant)
+# Base monthly fees (always present on an active account)
 monthly_fees_total += ACCOUNT_ON_FILE + GATEWAY
 monthly_fees_agent += ACCOUNT_ON_FILE + GATEWAY
 
 # Per-terminal monthly fees
-if num_terminals >= 1:
-    monthly_fees_total += PER_TERMINAL_FIRST
-    monthly_fees_agent += PER_TERMINAL_FIRST
+# First terminal
+monthly_fees_total += PER_TERMINAL_FIRST
+monthly_fees_agent += PER_TERMINAL_FIRST
 
+# Additional terminals (2nd and beyond)
 if num_terminals >= 2:
     additional_terminals = num_terminals - 1
     addl_fee = additional_terminals * PER_TERMINAL_ADDITIONAL
@@ -116,7 +121,7 @@ if num_terminals >= 2:
     monthly_fees_agent += addl_fee
 
 # Mobile monthly fee:
-# - Added to monthly_fees_total so it shows up in the monthly cost
+# - Added to monthly_fees_total so it shows in the monthly cost
 # - NOT added to monthly_fees_agent so it does NOT reduce agent profit
 if use_mobile:
     mobile_monthly_fee = num_mobile_devices * MOBILE_MONTHLY
@@ -130,9 +135,9 @@ flat_gross_profit = volume * flat_profit_pct
 dual_agent_share = dual_gross_profit * revshare
 flat_agent_share = flat_gross_profit * revshare
 
-# Net MONTHLY profit to agent (after agent-responsible monthly fees only)
-dual_net_monthly = dual_agent_share - monthly_fees_agent
-flat_net_monthly = flat_agent_share - monthly_fees_agent
+# Net MONTHLY profit to agent when absorbing only the agent-responsible monthly fees
+dual_net_monthly_absorb = dual_agent_share - monthly_fees_agent
+flat_net_monthly_absorb = flat_agent_share - monthly_fees_agent
 
 st.header("Results")
 
@@ -143,20 +148,18 @@ with col1:
     st.write(f"**Gross profit (processor):** ${dual_gross_profit:,.2f}")
     st.write(f"**Agent share (50%):** ${dual_agent_share:,.2f}")
     st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
-    st.write(f"**Net monthly to Agent (after monthly fees):** ${dual_net_monthly:,.2f}")
-    st.write(f"**One-time setup fees (not deducted above):** ${one_time_fees:,.2f}")
+    st.write(f"**Net to agent (passing monthly fees to merchant):** ${dual_agent_share:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees):** ${dual_net_monthly_absorb:,.2f}")
+    st.write(f"**One-time setup fees:** ${dual_one_time_fees:,.2f}")
 
 with col2:
     st.subheader("Flat Rate (2.95% + $0.30)")
     st.write(f"**Gross profit (processor):** ${flat_gross_profit:,.2f}")
     st.write(f"**Agent share (50%):** ${flat_agent_share:,.2f}")
     st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
-    st.write(f"**Net monthly to Agent (after monthly fees):** ${flat_net_monthly:,.2f}")
-    st.write("**One-time setup fees:**")
-    st.write(
-        "- Same hardware/mobile setup fees as selected above.\n"
-        "- No Dual Pricing compliance fee on flat rate."
-    )
+    st.write(f"**Net to agent (passing monthly fees to merchant):** ${flat_agent_share:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees):** ${flat_net_monthly_absorb:,.2f}")
+    st.write(f"**One-time setup fees:** ${flat_one_time_fees:,.2f}")
 
 st.write("---")
 st.caption("Adjust the volume and setup options above to model different merchant scenarios.")
