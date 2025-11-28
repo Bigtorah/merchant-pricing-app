@@ -98,9 +98,8 @@ dual_one_time_fees = base_one_time_fees + (DUAL_COMPLIANCE if use_dual_pricing e
 flat_one_time_fees = base_one_time_fees  # no compliance fee on flat rate
 
 # ---- Compute Monthly Fees ----
-# We separate:
 # - monthly_fees_total: what you show as the monthly cost
-# - monthly_fees_agent: what actually reduces the agent's profit
+# - monthly_fees_agent: what actually reduces the agent's profit when "absorbing"
 monthly_fees_total = 0.0
 monthly_fees_agent = 0.0
 
@@ -121,12 +120,12 @@ if num_terminals >= 2:
     monthly_fees_agent += addl_fee
 
 # Mobile monthly fee:
-# - Added to monthly_fees_total so it shows in the monthly cost
-# - NOT added to monthly_fees_agent so it does NOT reduce agent profit
+# Added to BOTH total and agent-responsible fees,
+# so absorbing monthly fees will decrease net when mobile is used.
 if use_mobile:
     mobile_monthly_fee = num_mobile_devices * MOBILE_MONTHLY
     monthly_fees_total += mobile_monthly_fee
-    # Do not add to monthly_fees_agent
+    monthly_fees_agent += mobile_monthly_fee
 
 # ---- Profit Calculations ----
 dual_gross_profit = volume * dual_profit_pct
@@ -135,7 +134,7 @@ flat_gross_profit = volume * flat_profit_pct
 dual_agent_share = dual_gross_profit * revshare
 flat_agent_share = flat_gross_profit * revshare
 
-# Net MONTHLY profit to agent when absorbing only the agent-responsible monthly fees
+# Net MONTHLY profit to agent when absorbing all monthly fees
 dual_net_monthly_absorb = dual_agent_share - monthly_fees_agent
 flat_net_monthly_absorb = flat_agent_share - monthly_fees_agent
 
