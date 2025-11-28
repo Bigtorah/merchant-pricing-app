@@ -2,30 +2,30 @@ import streamlit as st
 
 st.title("Single Merchant Revenue & Fees Calculator")
 
-st.markdown(
-    "Compare **Dual Pricing** vs **Flat Rate** for a single merchant and "
-    "instantly see agent earnings, monthly fees, and one-time setup costs."
-)
+st.markdown("Compare **Dual Pricing** vs **Flat Rate**")
 
 # ---- Core Inputs ----
-st.header("Base Inputs")
 
-# Default volume now 15,000 but still fully adjustable
-volume = st.number_input("Monthly Processing Volume ($)", value=15000, step=500)
+# Monthly volume as text so commas are allowed, e.g. "15,000"
+volume_input = st.text_input("Monthly Processing Volume ($)", value="15,000")
 
-st.subheader("Pricing Models (fixed assumptions)")
-st.markdown(
-    "- **Dual Pricing:** 3.99% (assumes **1.5%** profit to the processor)\n"
-    "- **Flat Rate:** 2.95% + $0.30 (assumes **1.0%** profit to the processor)"
-)
+def parse_dollar_input(text: str) -> float:
+    text = text.replace(",", "").replace("$", "").strip()
+    if text == "":
+        return 0.0
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
 
-# Fixed profit assumptions
-dual_profit_pct = 0.015   # 1.5%
-flat_profit_pct = 0.01    # 1.0%
+volume = parse_dollar_input(volume_input)
+
+# Fixed profit assumptions (not shown, just used)
+dual_profit_pct = 0.015   # 1.5% profit for Dual Pricing
+flat_profit_pct = 0.01    # 1.0% profit for Flat Rate
 
 # Fixed revshare
-revshare = 0.50
-st.markdown("**Revshare to Agent:** 50% (fixed)")
+revshare = 0.50  # 50% to agent
 
 st.write("---")
 
@@ -93,22 +93,35 @@ if use_mobile:
 if use_dual_pricing:
     one_time_fees += DUAL_COMPLIANCE
 
-# ---- Compute Monthly Fees (these DO reduce agent profit) ----
-monthly_fees = 0.0
+# ---- Compute Monthly Fees ----
+# We separate:
+# - monthly_fees_total: what you show as the monthly cost
+# - monthly_fees_agent: what actually reduces the agent's profit
+monthly_fees_total = 0.0
+monthly_fees_agent = 0.0
 
 # Base monthly fees (assumed for an active merchant)
-monthly_fees += ACCOUNT_ON_FILE
-monthly_fees += GATEWAY
+monthly_fees_total += ACCOUNT_ON_FILE + GATEWAY
+monthly_fees_agent += ACCOUNT_ON_FILE + GATEWAY
 
 # Per-terminal monthly fees
 if num_terminals >= 1:
-    monthly_fees += PER_TERMINAL_FIRST
-if num_terminals >= 2:
-    monthly_fees += (num_terminals - 1) * PER_TERMINAL_ADDITIONAL
+    monthly_fees_total += PER_TERMINAL_FIRST
+    monthly_fees_agent += PER_TERMINAL_FIRST
 
-# Mobile monthly fee
+if num_terminals >= 2:
+    additional_terminals = num_terminals - 1
+    addl_fee = additional_terminals * PER_TERMINAL_ADDITIONAL
+    monthly_fees_total += addl_fee
+    monthly_fees_agent += addl_fee
+
+# Mobile monthly fee:
+# - Added to monthly_fees_total so it shows up in the monthly cost
+# - NOT added to monthly_fees_agent so it does NOT reduce agent profit
 if use_mobile:
-    monthly_fees += num_mobile_devices * MOBILE_MONTHLY
+    mobile_monthly_fee = num_mobile_devices * MOBILE_MONTHLY
+    monthly_fees_total += mobile_monthly_fee
+    # Do not add to monthly_fees_agent
 
 # ---- Profit Calculations ----
 dual_gross_profit = volume * dual_profit_pct
@@ -117,9 +130,9 @@ flat_gross_profit = volume * flat_profit_pct
 dual_agent_share = dual_gross_profit * revshare
 flat_agent_share = flat_gross_profit * revshare
 
-# Net MONTHLY profit to agent (after monthly fees only)
-dual_net_monthly = dual_agent_share - monthly_fees
-flat_net_monthly = flat_agent_share - monthly_fees
+# Net MONTHLY profit to agent (after agent-responsible monthly fees only)
+dual_net_monthly = dual_agent_share - monthly_fees_agent
+flat_net_monthly = flat_agent_share - monthly_fees_agent
 
 st.header("Results")
 
@@ -129,7 +142,7 @@ with col1:
     st.subheader("Dual Pricing (3.99%)")
     st.write(f"**Gross profit (processor):** ${dual_gross_profit:,.2f}")
     st.write(f"**Agent share (50%):** ${dual_agent_share:,.2f}")
-    st.write(f"**Monthly fees (total):** ${monthly_fees:,.2f}")
+    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
     st.write(f"**Net monthly to Agent (after monthly fees):** ${dual_net_monthly:,.2f}")
     st.write(f"**One-time setup fees (not deducted above):** ${one_time_fees:,.2f}")
 
@@ -137,7 +150,7 @@ with col2:
     st.subheader("Flat Rate (2.95% + $0.30)")
     st.write(f"**Gross profit (processor):** ${flat_gross_profit:,.2f}")
     st.write(f"**Agent share (50%):** ${flat_agent_share:,.2f}")
-    st.write(f"**Monthly fees (total):** ${monthly_fees:,.2f}")
+    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
     st.write(f"**Net monthly to Agent (after monthly fees):** ${flat_net_monthly:,.2f}")
     st.write("**One-time setup fees:**")
     st.write(
