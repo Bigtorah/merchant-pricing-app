@@ -1,7 +1,7 @@
 import streamlit as st
 
 # -----------------------------
-#   PAGE CONFIG & THEME SETUP
+#   PAGE CONFIG
 # -----------------------------
 st.set_page_config(
     page_title="Pinpoint – Merchant Revenue & Fees Calculator",
@@ -17,16 +17,8 @@ st.markdown(
     <style>
     .main { background-color: #ffffff; }
 
-    .pp-card {
-        background-color: #F5F6FA;
-        padding: 1.5rem 1.8rem;
-        border-radius: 14px;
-        border: 1px solid #E1E4EB;
-        margin-bottom: 1.5rem;
-    }
-
     h1, h2, h3, h4 {
-        color: #0F4C81;
+        color: #0F4C81;  /* logo blue */
         font-weight: 700;
     }
 
@@ -34,6 +26,7 @@ st.markdown(
         color: #4A4F5A;
         font-size: 0.95rem;
         margin-bottom: 0.75rem;
+        text-align: center;
     }
     </style>
     """,
@@ -41,9 +34,9 @@ st.markdown(
 )
 
 # -----------------------------
-#   PINPOINT LOGO
+#   LOGO + TITLE
 # -----------------------------
-col1, col2, col3 = st.columns([1,2,1])
+col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("logo.png", width=220)
 
@@ -52,15 +45,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    "<p class='pp-subtitle' style='text-align:center;'>Compare <strong>Dual Pricing</strong> vs <strong>Flat Rate</strong> with clear monthly, yearly, and one-time economics.</p>",
+    "<p class='pp-subtitle'>Compare <strong>Dual Pricing</strong> vs "
+    "<strong>Flat Rate</strong> with clear monthly, yearly, and one-time economics.</p>",
     unsafe_allow_html=True,
 )
 
 # -----------------------------
-#   MONTHLY VOLUME INPUT
+#   MONTHLY VOLUME
 # -----------------------------
-st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
-st.markdown("#### Monthly Volume")
+st.markdown("### Monthly Volume")
 
 volume_input = st.text_input("Monthly Processing Volume ($)", value="15,000")
 
@@ -82,12 +75,11 @@ dual_profit_pct = 0.015   # 1.5% profit for Dual Pricing
 flat_profit_pct = 0.01    # 1.0% profit for Flat Rate
 revshare = 0.50           # 50% to agent
 
-st.markdown("</div>", unsafe_allow_html=True)
+st.write("---")
 
 # -----------------------------
 #   MERCHANT SETUP
 # -----------------------------
-st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
 st.markdown("### Merchant Setup")
 
 colA, colB = st.columns(2)
@@ -102,26 +94,21 @@ with colA:
         "Number of terminals", min_value=1, value=1, step=1
     )
 
-    use_dual_pricing = st.checkbox(
-        "This merchant is using Dual Pricing (3.99%)", value=True
-    )
-
 with colB:
     needs_stand = False
     if terminal == "Dejavoo P8":
         needs_stand = st.checkbox("Add stand for P8? ($35 one-time)", value=False)
 
-    use_mobile = st.checkbox(
-        "Using mobile payments (iPhone/Android)?", value=False
+    # Mobile device count (default 0)
+    num_mobile_devices = st.number_input(
+        "Number of mobile devices (optional)",
+        min_value=0,
+        value=0,
+        step=1,
+        help="$10/month per device + $30 one-time download per device.",
     )
 
-    num_mobile_devices = 0
-    if use_mobile:
-        num_mobile_devices = st.number_input(
-            "Number of mobile devices", min_value=1, value=1, step=1
-        )
-
-st.markdown("</div>", unsafe_allow_html=True)
+st.write("---")
 
 # -----------------------------
 #   FEE CONSTANTS
@@ -137,50 +124,45 @@ P18_TERMINAL = 446.50
 P12_TERMINAL = 166.75
 STAND_P8 = 35.00
 MOBILE_APP_DOWNLOAD = 30.00
-DUAL_COMPLIANCE = 3.00  # one-time DP compliance fee
+DUAL_COMPLIANCE = 3.00  # one-time DP compliance fee (always applies to Dual Pricing)
 
 # -----------------------------
-#   ONE-TIME FEES
+#   ONE-TIME FEES (PER MERCHANT)
 # -----------------------------
-base_one_time_fees = 0.0
-
+one_time_terminal = 0.0
 if terminal == "Dejavoo P8":
-    base_one_time_fees += P8_TERMINAL
+    one_time_terminal = P8_TERMINAL
 elif terminal == "Dejavoo P18":
-    base_one_time_fees += P18_TERMINAL
+    one_time_terminal = P18_TERMINAL
 elif terminal == "Dejavoo P12 Mini":
-    base_one_time_fees += P12_TERMINAL
+    one_time_terminal = P12_TERMINAL
 
-if needs_stand and terminal == "Dejavoo P8":
-    base_one_time_fees += STAND_P8
+one_time_stand = STAND_P8 if (terminal == "Dejavoo P8" and needs_stand) else 0.0
+one_time_mobile = num_mobile_devices * MOBILE_APP_DOWNLOAD
 
-if use_mobile:
-    base_one_time_fees += num_mobile_devices * MOBILE_APP_DOWNLOAD
-
-dual_one_time_fees = base_one_time_fees + (DUAL_COMPLIANCE if use_dual_pricing else 0.0)
-flat_one_time_fees = base_one_time_fees
+# Dual includes $3 compliance; Flat does not
+dual_one_time_fees = one_time_terminal + one_time_stand + one_time_mobile + DUAL_COMPLIANCE
+flat_one_time_fees = one_time_terminal + one_time_stand + one_time_mobile
 
 # -----------------------------
-#   MONTHLY FEES
+#   MONTHLY FEES (PER MERCHANT)
 # -----------------------------
-monthly_fees_total = 0.0
-monthly_fees_agent = 0.0
+monthly_account = ACCOUNT_ON_FILE
+monthly_gateway = GATEWAY
+monthly_first_terminal = PER_TERMINAL_FIRST
+monthly_additional_terminals = max(num_terminals - 1, 0) * PER_TERMINAL_ADDITIONAL
+monthly_mobile = num_mobile_devices * MOBILE_MONTHLY
 
-monthly_fees_total += ACCOUNT_ON_FILE + GATEWAY
-monthly_fees_agent += ACCOUNT_ON_FILE + GATEWAY
+monthly_fees_total = (
+    monthly_account
+    + monthly_gateway
+    + monthly_first_terminal
+    + monthly_additional_terminals
+    + monthly_mobile
+)
 
-monthly_fees_total += PER_TERMINAL_FIRST
-monthly_fees_agent += PER_TERMINAL_FIRST
-
-if num_terminals >= 2:
-    addl = (num_terminals - 1) * PER_TERMINAL_ADDITIONAL
-    monthly_fees_total += addl
-    monthly_fees_agent += addl
-
-if use_mobile:
-    m_fee = num_mobile_devices * MOBILE_MONTHLY
-    monthly_fees_total += m_fee
-    monthly_fees_agent += m_fee
+# All monthly fees are treated as "agent-responsible" in absorbing scenario
+monthly_fees_agent = monthly_fees_total
 
 # -----------------------------
 #   PROFIT CALCULATIONS
@@ -201,9 +183,8 @@ flat_year_pass = flat_agent * 12
 flat_year_absorb = flat_net_absorb * 12
 
 # -----------------------------
-#   RESULTS DISPLAY
+#   RESULTS (SINGLE MERCHANT)
 # -----------------------------
-st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
 st.markdown("### Results (Single Merchant)")
 
 colLeft, colRight = st.columns(2)
@@ -212,25 +193,71 @@ with colLeft:
     st.subheader("Dual Pricing (3.99%)")
     st.write(f"**Gross profit (processor, monthly):** ${dual_gross:,.2f}")
     st.write(f"**Agent share (50%, monthly):** ${dual_agent:,.2f}")
-    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
+
+    with st.expander(
+        f"Monthly fees (total): ${monthly_fees_total:,.2f}  — click to view breakdown"
+    ):
+        st.markdown(
+            f"""
+- Account on file: ${monthly_account:,.2f}
+- Gateway: ${monthly_gateway:,.2f}
+- First terminal: ${monthly_first_terminal:,.2f}
+- Additional terminals: ${monthly_additional_terminals:,.2f}
+- Mobile devices: ${monthly_mobile:,.2f}
+"""
+        )
+
     st.write(f"**Net to agent (passing monthly fees):** ${dual_agent:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees):** ${dual_net_absorb:,.2f}")
     st.write(f"**Yearly net (passing monthly fees):** ${dual_year_pass:,.2f}")
     st.write(f"**Yearly net (absorbing monthly fees):** ${dual_year_absorb:,.2f}")
-    st.write(f"**One-time setup fees:** ${dual_one_time_fees:,.2f}")
+
+    with st.expander(
+        f"One-time setup fees: ${dual_one_time_fees:,.2f}  — click to view breakdown"
+    ):
+        st.markdown(
+            f"""
+- Terminal hardware: ${one_time_terminal:,.2f}
+- P8 stand (if selected): ${one_time_stand:,.2f}
+- Mobile app download (${MOBILE_APP_DOWNLOAD:.2f} × {num_mobile_devices}): ${one_time_mobile:,.2f}
+- Dual Pricing compliance fee: ${DUAL_COMPLIANCE:,.2f}
+"""
+        )
 
 with colRight:
     st.subheader("Flat Rate (2.95% + $0.30)")
     st.write(f"**Gross profit (processor, monthly):** ${flat_gross:,.2f}")
     st.write(f"**Agent share (50%, monthly):** ${flat_agent:,.2f}")
-    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
+
+    with st.expander(
+        f"Monthly fees (total): ${monthly_fees_total:,.2f}  — click to view breakdown"
+    ):
+        st.markdown(
+            f"""
+- Account on file: ${monthly_account:,.2f}
+- Gateway: ${monthly_gateway:,.2f}
+- First terminal: ${monthly_first_terminal:,.2f}
+- Additional terminals: ${monthly_additional_terminals:,.2f}
+- Mobile devices: ${monthly_mobile:,.2f}
+"""
+        )
+
     st.write(f"**Net to agent (passing monthly fees):** ${flat_agent:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees):** ${flat_net_absorb:,.2f}")
     st.write(f"**Yearly net (passing monthly fees):** ${flat_year_pass:,.2f}")
     st.write(f"**Yearly net (absorbing monthly fees):** ${flat_year_absorb:,.2f}")
-    st.write(f"**One-time setup fees:** ${flat_one_time_fees:,.2f}")
 
-st.markdown("</div>", unsafe_allow_html=True)
+    with st.expander(
+        f"One-time setup fees: ${flat_one_time_fees:,.2f}  — click to view breakdown"
+    ):
+        st.markdown(
+            f"""
+- Terminal hardware: ${one_time_terminal:,.2f}
+- P8 stand (if selected): ${one_time_stand:,.2f}
+- Mobile app download (${MOBILE_APP_DOWNLOAD:.2f} × {num_mobile_devices}): ${one_time_mobile:,.2f}
+- Dual Pricing compliance fee: $0.00 (not charged on flat rate)
+"""
+        )
 
 # -----------------------------
 #   DISCLAIMER
