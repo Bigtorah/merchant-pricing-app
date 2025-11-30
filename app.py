@@ -97,7 +97,7 @@ with colA:
 with colB:
     needs_stand = False
     if terminal == "Dejavoo P8":
-        needs_stand = st.checkbox("Add stand for P8? ($35 one-time)", value=False)
+        needs_stand = st.checkbox("Add Dejavoo P8 stand? ($35 one-time)", value=False)
 
     # Mobile device count (default 0)
     num_mobile_devices = st.number_input(
@@ -105,7 +105,7 @@ with colB:
         min_value=0,
         value=0,
         step=1,
-        help="$10/month per device + $30 one-time download per device.",
+        help="10 per month per device + 30 one-time download per device.",
     )
 
 st.write("---")
@@ -197,15 +197,17 @@ with colLeft:
     with st.expander(
         f"Monthly fees (total): ${monthly_fees_total:,.2f}  — click to view breakdown"
     ):
-        st.markdown(
-            f"""
-- Account on file: ${monthly_account:,.2f}
-- Gateway: ${monthly_gateway:,.2f}
-- First terminal: ${monthly_first_terminal:,.2f}
-- Additional terminals: ${monthly_additional_terminals:,.2f}
-- Mobile devices: ${monthly_mobile:,.2f}
-"""
-        )
+        st.markdown(f"- Account on file (bank): ${monthly_account:,.2f}")
+        st.markdown(f"- Dejavoo gateway: ${monthly_gateway:,.2f}")
+        st.markdown(f"- Dejavoo first terminal: ${monthly_first_terminal:,.2f}")
+        if monthly_additional_terminals > 0:
+            st.markdown(
+                f"- Dejavoo additional terminals: ${monthly_additional_terminals:,.2f}"
+            )
+        if monthly_mobile > 0:
+            st.markdown(
+                f"- Dejavoo mobile devices: ${monthly_mobile:,.2f}"
+            )
 
     st.write(f"**Net to agent (passing monthly fees):** ${dual_agent:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees):** ${dual_net_absorb:,.2f}")
@@ -215,13 +217,21 @@ with colLeft:
     with st.expander(
         f"One-time setup fees: ${dual_one_time_fees:,.2f}  — click to view breakdown"
     ):
+        if one_time_terminal > 0:
+            st.markdown(
+                f"- Dejavoo terminal hardware: ${one_time_terminal:,.2f}"
+            )
+        if one_time_stand > 0:
+            st.markdown(
+                f"- Dejavoo P8 stand (if selected): ${one_time_stand:,.2f}"
+            )
+        if one_time_mobile > 0:
+            st.markdown(
+                f"- Dejavoo mobile app download ({num_mobile_devices} device(s)): "
+                f"${one_time_mobile:,.2f}"
+            )
         st.markdown(
-            f"""
-- Terminal hardware: ${one_time_terminal:,.2f}
-- P8 stand (if selected): ${one_time_stand:,.2f}
-- Mobile app download (${MOBILE_APP_DOWNLOAD:.2f} × {num_mobile_devices}): ${one_time_mobile:,.2f}
-- Dual Pricing compliance fee: ${DUAL_COMPLIANCE:,.2f}
-"""
+            f"- Dual Pricing compliance fee: ${DUAL_COMPLIANCE:,.2f}"
         )
 
 with colRight:
@@ -232,15 +242,17 @@ with colRight:
     with st.expander(
         f"Monthly fees (total): ${monthly_fees_total:,.2f}  — click to view breakdown"
     ):
-        st.markdown(
-            f"""
-- Account on file: ${monthly_account:,.2f}
-- Gateway: ${monthly_gateway:,.2f}
-- First terminal: ${monthly_first_terminal:,.2f}
-- Additional terminals: ${monthly_additional_terminals:,.2f}
-- Mobile devices: ${monthly_mobile:,.2f}
-"""
-        )
+        st.markdown(f"- Account on file (bank): ${monthly_account:,.2f}")
+        st.markdown(f"- Dejavoo gateway: ${monthly_gateway:,.2f}")
+        st.markdown(f"- Dejavoo first terminal: ${monthly_first_terminal:,.2f}")
+        if monthly_additional_terminals > 0:
+            st.markdown(
+                f"- Dejavoo additional terminals: ${monthly_additional_terminals:,.2f}"
+            )
+        if monthly_mobile > 0:
+            st.markdown(
+                f"- Dejavoo mobile devices: ${monthly_mobile:,.2f}"
+            )
 
     st.write(f"**Net to agent (passing monthly fees):** ${flat_agent:,.2f}")
     st.write(f"**Net to agent (absorbing monthly fees):** ${flat_net_absorb:,.2f}")
@@ -250,13 +262,21 @@ with colRight:
     with st.expander(
         f"One-time setup fees: ${flat_one_time_fees:,.2f}  — click to view breakdown"
     ):
+        if one_time_terminal > 0:
+            st.markdown(
+                f"- Dejavoo terminal hardware: ${one_time_terminal:,.2f}"
+            )
+        if one_time_stand > 0:
+            st.markdown(
+                f"- Dejavoo P8 stand (if selected): ${one_time_stand:,.2f}"
+            )
+        if one_time_mobile > 0:
+            st.markdown(
+                f"- Dejavoo mobile app download ({num_mobile_devices} device(s)): "
+                f"${one_time_mobile:,.2f}"
+            )
         st.markdown(
-            f"""
-- Terminal hardware: ${one_time_terminal:,.2f}
-- P8 stand (if selected): ${one_time_stand:,.2f}
-- Mobile app download (${MOBILE_APP_DOWNLOAD:.2f} × {num_mobile_devices}): ${one_time_mobile:,.2f}
-- Dual Pricing compliance fee: $0.00 (not charged on flat rate)
-"""
+            "- Dual Pricing compliance fee: $0.00 (not charged on flat rate)"
         )
 
 # -----------------------------
