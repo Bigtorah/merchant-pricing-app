@@ -1,4 +1,5 @@
 import streamlit as st
+st.image("https://pinpointpayments.com/wp-content/uploads/2022/09/PinpointLogo-Color.png", width=220)
 
 st.title("Single Merchant Revenue & Fees Calculator")
 
