@@ -1,21 +1,22 @@
 import streamlit as st
 
-st.markdown(
-    """
-    <div style='text-align:center; margin-bottom: 0.2rem;'>
-        <img src="logo.png" width="220">
-    </div>
-    """,
-    unsafe_allow_html=True
+# -----------------------------
+#   PAGE CONFIG & THEME SETUP
+# -----------------------------
+st.set_page_config(
+    page_title="Pinpoint – Merchant Revenue & Fees Calculator",
+    page_icon="💳",
+    layout="wide",
 )
 
-# --- Basic styling to feel closer to pinpointpayments.com ---
+# -----------------------------
+#   BASIC BRAND STYLING
+# -----------------------------
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #ffffff;
-    }
+    .main { background-color: #ffffff; }
+
     .pp-card {
         background-color: #F5F6FA;
         padding: 1.5rem 1.8rem;
@@ -23,10 +24,12 @@ st.markdown(
         border: 1px solid #E1E4EB;
         margin-bottom: 1.5rem;
     }
+
     h1, h2, h3, h4 {
         color: #0F4C81;
         font-weight: 700;
     }
+
     .pp-subtitle {
         color: #4A4F5A;
         font-size: 0.95rem;
@@ -37,90 +40,92 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Logo + title ---
-st.markdown(
-    """
-    <div style="text-align: center; margin-bottom: 0.2rem;">
-        <img src="https://www.pinpointpayments.com/wp-content/uploads/2022/09/PinpointLogo-Color.png"
-             alt="Pinpoint Payments" width="220">
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+# -----------------------------
+#   PINPOINT LOGO
+# -----------------------------
+col1, col2, col3 = st.columns([1,2,1])
+with col2:
+    st.image("logo.png", width=220)
 
 st.markdown(
-    "<h2 style='text-align:center; margin-bottom:0.1rem;'>Single Merchant Revenue & Fees Calculator</h2>",
+    "<h2 style='text-align:center; margin-bottom:0.10rem;'>Single Merchant Revenue & Fees Calculator</h2>",
     unsafe_allow_html=True,
 )
 st.markdown(
-    "<p class='pp-subtitle' style='text-align:center;'>Compare <strong>Dual Pricing</strong> vs "
-    "<strong>Flat Rate</strong> for one merchant with clear monthly, yearly, and one-time economics.</p>",
+    "<p class='pp-subtitle' style='text-align:center;'>Compare <strong>Dual Pricing</strong> vs <strong>Flat Rate</strong> with clear monthly, yearly, and one-time economics.</p>",
     unsafe_allow_html=True,
 )
 
-# ---- Core Inputs ----
-with st.container():
-    st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
+# -----------------------------
+#   MONTHLY VOLUME INPUT
+# -----------------------------
+st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
+st.markdown("#### Monthly Volume")
 
-    st.markdown("#### Monthly Volume")
-    volume_input = st.text_input("Monthly Processing Volume ($)", value="15,000")
+volume_input = st.text_input("Monthly Processing Volume ($)", value="15,000")
 
-    def parse_dollar_input(text: str) -> float:
-        text = text.replace(",", "").replace("$", "").strip()
-        if text == "":
-            return 0.0
-        try:
-            return float(text)
-        except ValueError:
-            return 0.0
 
-    volume = parse_dollar_input(volume_input)
+def parse_dollar_input(text: str) -> float:
+    text = text.replace(",", "").replace("$", "").strip()
+    if text == "":
+        return 0.0
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
 
-    # Fixed profit assumptions
-    dual_profit_pct = 0.015   # 1.5% profit for Dual Pricing
-    flat_profit_pct = 0.01    # 1.0% profit for Flat Rate
-    revshare = 0.50           # 50% to agent
 
-    st.markdown("</div>", unsafe_allow_html=True)
+volume = parse_dollar_input(volume_input)
 
-# ---- Merchant Setup ----
-with st.container():
-    st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
-    st.markdown("### Merchant Setup")
+# Profit assumptions (fixed)
+dual_profit_pct = 0.015   # 1.5% profit for Dual Pricing
+flat_profit_pct = 0.01    # 1.0% profit for Flat Rate
+revshare = 0.50           # 50% to agent
 
-    col_setup_left, col_setup_right = st.columns(2)
+st.markdown("</div>", unsafe_allow_html=True)
 
-    with col_setup_left:
-        terminal = st.selectbox(
-            "Terminal type",
-            ["None", "Dejavoo P8", "Dejavoo P18", "Dejavoo P12 Mini"],
+# -----------------------------
+#   MERCHANT SETUP
+# -----------------------------
+st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
+st.markdown("### Merchant Setup")
+
+colA, colB = st.columns(2)
+
+with colA:
+    terminal = st.selectbox(
+        "Terminal type",
+        ["None", "Dejavoo P8", "Dejavoo P18", "Dejavoo P12 Mini"],
+    )
+
+    num_terminals = st.number_input(
+        "Number of terminals", min_value=1, value=1, step=1
+    )
+
+    use_dual_pricing = st.checkbox(
+        "This merchant is using Dual Pricing (3.99%)", value=True
+    )
+
+with colB:
+    needs_stand = False
+    if terminal == "Dejavoo P8":
+        needs_stand = st.checkbox("Add stand for P8? ($35 one-time)", value=False)
+
+    use_mobile = st.checkbox(
+        "Using mobile payments (iPhone/Android)?", value=False
+    )
+
+    num_mobile_devices = 0
+    if use_mobile:
+        num_mobile_devices = st.number_input(
+            "Number of mobile devices", min_value=1, value=1, step=1
         )
 
-        num_terminals = st.number_input(
-            "Number of terminals", min_value=1, value=1, step=1
-        )
+st.markdown("</div>", unsafe_allow_html=True)
 
-        use_dual_pricing = st.checkbox(
-            "This merchant is using Dual Pricing (3.99%)", value=True
-        )
-
-    with col_setup_right:
-        needs_stand = False
-        if terminal == "Dejavoo P8":
-            needs_stand = st.checkbox("Add stand for P8? ($35 one-time)", value=False)
-
-        use_mobile = st.checkbox(
-            "Will they use mobile payments (iPhone/Android)?", value=False
-        )
-        num_mobile_devices = 0
-        if use_mobile:
-            num_mobile_devices = st.number_input(
-                "Number of mobile devices", min_value=1, value=1, step=1
-            )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---- Fee Constants ----
+# -----------------------------
+#   FEE CONSTANTS
+# -----------------------------
 ACCOUNT_ON_FILE = 7.50
 GATEWAY = 10.00
 PER_TERMINAL_FIRST = 4.00
@@ -132,9 +137,11 @@ P18_TERMINAL = 446.50
 P12_TERMINAL = 166.75
 STAND_P8 = 35.00
 MOBILE_APP_DOWNLOAD = 30.00
-DUAL_COMPLIANCE = 3.00
+DUAL_COMPLIANCE = 3.00  # one-time DP compliance fee
 
-# ---- One-Time Fees (single merchant) ----
+# -----------------------------
+#   ONE-TIME FEES
+# -----------------------------
 base_one_time_fees = 0.0
 
 if terminal == "Dejavoo P8":
@@ -153,7 +160,9 @@ if use_mobile:
 dual_one_time_fees = base_one_time_fees + (DUAL_COMPLIANCE if use_dual_pricing else 0.0)
 flat_one_time_fees = base_one_time_fees
 
-# ---- Monthly Fees (single merchant) ----
+# -----------------------------
+#   MONTHLY FEES
+# -----------------------------
 monthly_fees_total = 0.0
 monthly_fees_agent = 0.0
 
@@ -164,87 +173,68 @@ monthly_fees_total += PER_TERMINAL_FIRST
 monthly_fees_agent += PER_TERMINAL_FIRST
 
 if num_terminals >= 2:
-    additional_terminals = num_terminals - 1
-    addl_fee = additional_terminals * PER_TERMINAL_ADDITIONAL
-    monthly_fees_total += addl_fee
-    monthly_fees_agent += addl_fee
+    addl = (num_terminals - 1) * PER_TERMINAL_ADDITIONAL
+    monthly_fees_total += addl
+    monthly_fees_agent += addl
 
 if use_mobile:
-    mobile_monthly_fee = num_mobile_devices * MOBILE_MONTHLY
-    monthly_fees_total += mobile_monthly_fee
-    monthly_fees_agent += mobile_monthly_fee
+    m_fee = num_mobile_devices * MOBILE_MONTHLY
+    monthly_fees_total += m_fee
+    monthly_fees_agent += m_fee
 
-# ---- Profit Calculations (single merchant) ----
-dual_gross_profit = volume * dual_profit_pct
-flat_gross_profit = volume * flat_profit_pct
+# -----------------------------
+#   PROFIT CALCULATIONS
+# -----------------------------
+dual_gross = volume * dual_profit_pct
+flat_gross = volume * flat_profit_pct
 
-dual_agent_share = dual_gross_profit * revshare
-flat_agent_share = flat_gross_profit * revshare
+dual_agent = dual_gross * revshare
+flat_agent = flat_gross * revshare
 
-dual_net_monthly_absorb = dual_agent_share - monthly_fees_agent
-flat_net_monthly_absorb = flat_agent_share - monthly_fees_agent
+dual_net_absorb = dual_agent - monthly_fees_agent
+flat_net_absorb = flat_agent - monthly_fees_agent
 
-dual_yearly_passing = dual_agent_share * 12
-dual_yearly_absorb = dual_net_monthly_absorb * 12
+dual_year_pass = dual_agent * 12
+dual_year_absorb = dual_net_absorb * 12
 
-flat_yearly_passing = flat_agent_share * 12
-flat_yearly_absorb = flat_net_monthly_absorb * 12
+flat_year_pass = flat_agent * 12
+flat_year_absorb = flat_net_absorb * 12
 
-# ---- Results ----
-with st.container():
-    st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
-    st.markdown("### Results (Single Merchant)")
+# -----------------------------
+#   RESULTS DISPLAY
+# -----------------------------
+st.markdown("<div class='pp-card'>", unsafe_allow_html=True)
+st.markdown("### Results (Single Merchant)")
 
-    col1, col2 = st.columns(2)
+colLeft, colRight = st.columns(2)
 
-    with col1:
-        st.subheader("Dual Pricing (3.99%)")
-        st.write(f"**Gross profit (processor, monthly):** ${dual_gross_profit:,.2f}")
-        st.write(f"**Agent share (50%, monthly):** ${dual_agent_share:,.2f}")
-        st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
-        st.write(
-            f"**Net to agent (passing monthly fees, monthly):** "
-            f"${dual_agent_share:,.2f}"
-        )
-        st.write(
-            f"**Net to agent (absorbing monthly fees, monthly):** "
-            f"${dual_net_monthly_absorb:,.2f}"
-        )
-        st.write(
-            f"**Yearly net to agent (passing monthly fees):** "
-            f"${dual_yearly_passing:,.2f}"
-        )
-        st.write(
-            f"**Yearly net to agent (absorbing monthly fees):** "
-            f"${dual_yearly_absorb:,.2f}"
-        )
-        st.write(f"**One-time setup fees:** ${dual_one_time_fees:,.2f}")
+with colLeft:
+    st.subheader("Dual Pricing (3.99%)")
+    st.write(f"**Gross profit (processor, monthly):** ${dual_gross:,.2f}")
+    st.write(f"**Agent share (50%, monthly):** ${dual_agent:,.2f}")
+    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
+    st.write(f"**Net to agent (passing monthly fees):** ${dual_agent:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees):** ${dual_net_absorb:,.2f}")
+    st.write(f"**Yearly net (passing monthly fees):** ${dual_year_pass:,.2f}")
+    st.write(f"**Yearly net (absorbing monthly fees):** ${dual_year_absorb:,.2f}")
+    st.write(f"**One-time setup fees:** ${dual_one_time_fees:,.2f}")
 
-    with col2:
-        st.subheader("Flat Rate (2.95% + $0.30)")
-        st.write(f"**Gross profit (processor, monthly):** ${flat_gross_profit:,.2f}")
-        st.write(f"**Agent share (50%, monthly):** ${flat_agent_share:,.2f}")
-        st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
-        st.write(
-            f"**Net to agent (passing monthly fees, monthly):** "
-            f"${flat_agent_share:,.2f}"
-        )
-        st.write(
-            f"**Net to agent (absorbing monthly fees, monthly):** "
-            f"${flat_net_monthly_absorb:,.2f}"
-        )
-        st.write(
-            f"**Yearly net to agent (passing monthly fees):** "
-            f"${flat_yearly_passing:,.2f}"
-        )
-        st.write(
-            f"**Yearly net to agent (absorbing monthly fees):** "
-            f"${flat_yearly_absorb:,.2f}"
-        )
-        st.write(f"**One-time setup fees:** ${flat_one_time_fees:,.2f}")
+with colRight:
+    st.subheader("Flat Rate (2.95% + $0.30)")
+    st.write(f"**Gross profit (processor, monthly):** ${flat_gross:,.2f}")
+    st.write(f"**Agent share (50%, monthly):** ${flat_agent:,.2f}")
+    st.write(f"**Monthly fees (total):** ${monthly_fees_total:,.2f}")
+    st.write(f"**Net to agent (passing monthly fees):** ${flat_agent:,.2f}")
+    st.write(f"**Net to agent (absorbing monthly fees):** ${flat_net_absorb:,.2f}")
+    st.write(f"**Yearly net (passing monthly fees):** ${flat_year_pass:,.2f}")
+    st.write(f"**Yearly net (absorbing monthly fees):** ${flat_year_absorb:,.2f}")
+    st.write(f"**One-time setup fees:** ${flat_one_time_fees:,.2f}")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
+# -----------------------------
+#   DISCLAIMER
+# -----------------------------
 st.write("---")
 st.markdown(
     "_These are only estimates. BIN mix and method of processing "
