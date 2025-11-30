@@ -1,9 +1,12 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="Pinpoint – Merchant Profit Calculator",
-    page_icon="💳",
-    layout="wide",
+st.markdown(
+    """
+    <div style='text-align:center; margin-bottom: 0.2rem;'>
+        <img src="logo.png" width="220">
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 # --- Basic styling to feel closer to pinpointpayments.com ---
