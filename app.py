@@ -87,7 +87,7 @@ colA, colB = st.columns(2)
 with colA:
     terminal = st.selectbox(
         "Terminal type",
-        ["None", "Dejavoo P8", "Dejavoo P18", "Dejavoo P12 Mini"],
+        ["None", "Dejavoo P8", "Dejavoo P12 Mini"],
     )
 
     num_terminals = st.number_input(
